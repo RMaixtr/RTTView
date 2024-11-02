@@ -295,15 +295,25 @@ class RTTView(QWidget):
                     self.rcvfile.write(rcvdbytes.decode('latin-1'))
 
                 self.rcvbuff += rcvdbytes
+
+                import dataProcess
+                dataProcess.dataProcess(rcvdbytes)
                 
                 if self.chkWave.isChecked():
                     if b',' in self.rcvbuff:
                         try:
-                            d = self.rcvbuff[0:self.rcvbuff.rfind(b',')].split(b',')        # [b'12', b'34'] or [b'12 34', b'56 78']
+                            d = self.rcvbuff[0:self.rcvbuff.rfind(b'\r\n')].split(b'\r\n')        # [b'12', b'34'] or [b'12 34', b'56 78']
+                            sendlist = []
+                            for tmp in d:
+                                if b"gyro_z_rms" in tmp:
+                                    sendlist.append(tmp.split()[1].split(b',')[0])
+                                    # print(tmp.split()[1].split(b','))
+
                             if self.cmbICode.currentText() != 'HEX':
-                                d = [[float(x)   for x in X.strip().split()] for X in d]    # [[12], [34]]   or [[12, 34], [56, 78]]
+                                d = [[float(x)   for x in X.strip().split()] for X in sendlist]    # [[12], [34]]   or [[12, 34], [56, 78]]
                             else:
-                                d = [[int(x, 16) for x in X.strip().split()] for X in d]    # for example, d = [b'12', b'AA', b'5A5A']
+                                d = [[int(x, 16) for x in X.strip().split()] for X in sendlist]    # for example, d = [b'12', b'AA', b'5A5A']
+                            # print(d)
                             for arr in d:
                                 for i, x in enumerate(arr):
                                     if i == self.N_CURVE: break
@@ -313,7 +323,7 @@ class RTTView(QWidget):
                                     self.PlotPoint[i].pop(0)
                                     self.PlotPoint[i].append(QtCore.QPointF(999, x))
                             
-                            self.rcvbuff = self.rcvbuff[self.rcvbuff.rfind(b',')+1:]
+                            self.rcvbuff = self.rcvbuff[self.rcvbuff.rfind(b'\r\n')+1:]
 
                             if self.tmrRTT_Cnt - self.tmrRTT_Sav > 3:
                                 self.tmrRTT_Sav = self.tmrRTT_Cnt
